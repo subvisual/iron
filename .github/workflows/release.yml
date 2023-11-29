@@ -105,6 +105,8 @@ jobs:
           gpg --batch --passphrase "${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}" --import /tmp/gpg.key
           rm /tmp/gpg.key
 
+      - run: gpg --list-keys
+
       - run: yarn run tauri build
         env:
           SIGN: 1
