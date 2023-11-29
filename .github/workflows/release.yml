@@ -117,18 +117,3 @@ jobs:
         with:
           name: appimage.AppImage
           path: target/release/bundle/appimage/iron_1.3.0_amd64.AppImage
-
-      - uses: tauri-apps/tauri-action@v0
-        id: tauri
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SIGN: 1
-          SIGN_KEY: ${{ secrets.GPG_SIGNING_KEY_ID }}
-          APPIMAGETOOL_SIGN_PASSPHRASE: ${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}
-        with:
-          releaseId: ${{ needs.setup.outputs.release_id }}
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: appimage2.AppImage
-          path: target/release/bundle/appimage/iron_1.3.0_amd64.AppImage
