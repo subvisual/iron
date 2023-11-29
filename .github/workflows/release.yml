@@ -105,6 +105,13 @@ jobs:
           gpg --batch --passphrase "${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}" --import /tmp/gpg.key
           rm /tmp/gpg.key
 
+      - run: yarn run tauri build
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: appimage.AppImage
+          path: target/release/bundle/appimage/iron_1.3.0_amd64.AppImage
+
       - uses: tauri-apps/tauri-action@v0
         id: tauri
         env:
