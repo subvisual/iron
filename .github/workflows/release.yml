@@ -68,7 +68,8 @@ jobs:
         if: matrix.platform == 'ubuntu-20.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf libsodium-dev libusb-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libayatana-appindicator3-dev librsvg2-dev
+          sudo apt-get install -y libsodium-dev libusb-dev
 
       - name: install dependencies (windows)
         if: matrix.platform == 'windows-latest'
@@ -104,7 +105,6 @@ jobs:
           gpg_private_key: ${{ secrets.GPG_SIGNING_KEY }}
           passphrase: ${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}
           fingerprint: ${{ secrets.GPG_SIGNING_KEY_ID }}
-      - run: gpg --list-keys
 
       - uses: tauri-apps/tauri-action@v0
         id: tauri
