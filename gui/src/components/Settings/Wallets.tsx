@@ -1,8 +1,5 @@
-import { ExpandMore, KeyboardArrowDown } from "@mui/icons-material";
+import { KeyboardArrowDown } from "@mui/icons-material";
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Button,
   Chip,
   Menu,
@@ -11,10 +8,11 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api";
 import { startCase } from "lodash-es";
 import { useState } from "react";
 
+import { Accordion, AccordionDetails, AccordionSummary } from "@/components";
 import { useWallets } from "@/store";
 import { Wallet, walletTypes } from "@/types/wallets";
 
@@ -66,7 +64,7 @@ function ExistingItem({ wallet }: ItemProps) {
 
   return (
     <Accordion defaultExpanded={!wallet}>
-      <AccordionSummary expandIcon={<ExpandMore />}>
+      <AccordionSummary>
         <Stack alignItems="center" direction="row">
           <Typography>{wallet.name}</Typography>
           <Chip sx={{ marginLeft: 2 }} label={wallet.type} />

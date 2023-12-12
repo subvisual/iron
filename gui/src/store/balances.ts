@@ -1,5 +1,4 @@
-import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/tauri";
+import { event, invoke } from "@tauri-apps/api";
 import { Address } from "viem";
 import { create, StateCreator } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
@@ -25,8 +24,6 @@ interface Setters {
 }
 
 type Store = State & Setters;
-
-// const actionId = "balances";
 
 const store: StateCreator<Store> = (set, get) => ({
   erc20Balances: [],
@@ -66,7 +63,7 @@ const store: StateCreator<Store> = (set, get) => ({
 
 export const useBalances = create<Store>()(subscribeWithSelector(store));
 
-listen("balances-updated", async () => {
+event.listen("balances-updated", async () => {
   await useBalances.getState().reload();
 });
 
