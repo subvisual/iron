@@ -7,6 +7,7 @@ use super::{
     wallets::{HDWallet, Impersonator, JsonKeystoreWallet, LedgerWallet, PlaintextWallet},
     Error, Result,
 };
+use crate::wallets::PrivateKeyWallet;
 
 #[async_trait]
 #[enum_dispatch(Wallet)]
@@ -65,6 +66,8 @@ pub enum Wallet {
     Impersonator(Impersonator),
 
     Ledger(LedgerWallet),
+
+    PrivateKey(PrivateKeyWallet),
 }
 
 impl Wallet {
@@ -77,6 +80,7 @@ impl Wallet {
             "HDWallet" => HDWallet::create(params).await?,
             "impersonator" => Impersonator::create(params).await?,
             "ledger" => LedgerWallet::create(params).await?,
+            "privateKey" => PrivateKeyWallet::create(params).await?,
             _ => return Err(Error::InvalidWalletType(wallet_type.into())),
         };
 
@@ -91,6 +95,7 @@ pub enum WalletType {
     HDWallet,
     Impersonator,
     Ledger,
+    PrivateKey,
 }
 
 impl std::fmt::Display for WalletType {
@@ -104,6 +109,7 @@ impl std::fmt::Display for WalletType {
                 WalletType::HDWallet => "HDWallet",
                 WalletType::Impersonator => "impersonator",
                 WalletType::Ledger => "ledger",
+                WalletType::PrivateKey => "privateKey",
             }
         )
     }
@@ -117,6 +123,7 @@ impl From<&Wallet> for WalletType {
             Wallet::HDWallet(_) => Self::HDWallet,
             Wallet::Impersonator(_) => Self::Impersonator,
             Wallet::Ledger(_) => Self::Ledger,
+            Wallet::PrivateKey(_) => Self::PrivateKey,
         }
     }
 }

@@ -12,15 +12,15 @@ import { invoke } from "@tauri-apps/api";
 import { startCase } from "lodash-es";
 import { useState } from "react";
 
+import { Wallet, walletTypes } from "@iron/types/wallets";
 import { Accordion, AccordionDetails, AccordionSummary } from "@/components";
 import { useWallets } from "@/store";
-import { Wallet, walletTypes } from "@/types/wallets";
-
 import { HDWalletForm } from "./Wallet/HDWallet";
 import { ImpersonatorForm } from "./Wallet/Impersonator";
 import { JsonKeystore } from "./Wallet/JsonKeystore";
 import { Ledger } from "./Wallet/Ledger";
 import { Plaintext } from "./Wallet/Plaintext";
+import { PrivateKeyForm } from "./Wallet/PrivateKey";
 
 export function SettingsWallets() {
   const wallets = useWallets((s) => s.wallets);
@@ -83,6 +83,9 @@ function ExistingItem({ wallet }: ItemProps) {
         {wallet.type === "impersonator" && (
           <ImpersonatorForm wallet={wallet} {...props} />
         )}
+        {wallet.type === "privateKey" && (
+          <PrivateKeyForm wallet={wallet} {...props} />
+        )}
         {wallet.type === "ledger" && <Ledger wallet={wallet} {...props} />}
       </AccordionDetails>
     </Accordion>
@@ -116,6 +119,7 @@ function NewItem({ type, onFinish }: NewItemProps) {
       {type === "HDWallet" && <HDWalletForm {...props} />}
       {type === "impersonator" && <ImpersonatorForm {...props} />}
       {type === "ledger" && <Ledger {...props} />}
+      {type === "privateKey" && <PrivateKeyForm {...props} />}
     </Paper>
   );
 }

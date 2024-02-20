@@ -1,84 +1,85 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ContentCopySharp } from "@mui/icons-material";
-import { Box, Button, Stack, TextField, Typography } from "@mui/material";
+import { Button, Stack, TextField } from "@mui/material";
 import { invoke } from "@tauri-apps/api";
 import { useState } from "react";
 import { FieldValues, useForm } from "react-hook-form";
 import truncateEthAddress from "truncate-eth-address";
-import { getAddress } from "viem";
+import { Address, getAddress } from "viem";
 import { z } from "zod";
 
+import { Typography } from "@iron/react/components";
 import { useInvoke } from "@/hooks";
-
-import { ContextMenu, Modal } from "./";
+import { ContextMenuWithTauri, Modal } from "./";
+import { useNetworks } from "@/store";
+import { IconCrypto } from "./Icons";
 
 interface Props {
-  address: string;
-  contextMenu?: boolean;
+  address: Address;
   copyIcon?: boolean;
+  mono?: boolean;
+  contextMenu?: boolean;
+  variant?: "h6";
+  tokenIcon?: boolean;
 }
 
-export function AddressView({ contextMenu, address: addr, copyIcon }: Props) {
+export function AddressView({
+  address: addr,
+  mono = false,
+  contextMenu = true,
+  variant,
+  tokenIcon = false,
+}: Props) {
+  const network = useNetworks((s) => s.current);
   const address = getAddress(addr);
-  const { data: alias, mutate } = useInvoke<string>("settings_get_alias", {
+  const { data: alias, refetch } = useInvoke<string>("settings_get_alias", {
     address,
   });
   const [aliasFormOpen, setAliasFormOpen] = useState(false);
 
-  const contextActions = [
-    { label: "Set alias", action: () => setAliasFormOpen(true) },
-    {
-      label: "Clear alias",
-      action: () => {
-        invoke("settings_set_alias", { address, alias: null });
-        mutate();
-      },
-      disabled: !alias,
-    },
-  ];
+  if (!network) return;
 
+  const text = alias ? alias : truncateEthAddress(`${address}`);
   const content = (
-    <>
-      {alias ? alias : truncateEthAddress(`${address}`)}
-      {copyIcon && <ContentCopySharp fontSize="small" sx={{ ml: 1 }} />}
-    </>
+    <Stack direction="row" alignItems="center" spacing={1}>
+      {tokenIcon && (
+        <IconCrypto chainId={network.chain_id} address={address} size="small" />
+      )}
+      <Typography mono={mono} variant={variant}>
+        {text}
+      </Typography>
+    </Stack>
   );
+
+  if (!contextMenu) return content;
 
   return (
-    <>
-      {!contextMenu && (
-        <Box fontSize="inherit" title={address}>
-          {content}
-        </Box>
-      )}
+    <ContextMenuWithTauri
+      copy={address}
+      actions={[
+        {
+          label: "Open in explorer",
+          href: `${network.explorer_url}${address}`,
+        },
+        { label: "Set alias", action: () => setAliasFormOpen(true) },
+        {
+          label: "Clear alias",
+          action: () => setAliasFormOpen(true),
+          disabled: !alias,
+        },
+      ]}
+      sx={{ textTransform: "none" }}
+    >
+      {content}
 
-      {contextMenu && (
-        <>
-          <ContextMenu
-            copy={address}
-            explorer={address}
-            actions={contextActions}
-            sx={{ textTransform: "none" }}
-          >
-            {content}
-          </ContextMenu>
-
-          <Modal open={aliasFormOpen} onClose={() => setAliasFormOpen(false)}>
-            <AliasForm
-              {...{ address, alias, mutate }}
-              onSubmit={() => setAliasFormOpen(false)}
-            />
-          </Modal>
-        </>
-      )}
-    </>
+      <Modal open={aliasFormOpen} onClose={() => setAliasFormOpen(false)}>
+        <AliasForm
+          {...{ address, alias, refetch }}
+          onSubmit={() => setAliasFormOpen(false)}
+        />
+      </Modal>
+    </ContextMenuWithTauri>
   );
 }
-
-AddressView.defaultProps = {
-  contextMenu: true,
-  copyIcon: false,
-};
 
 const schema = z.object({
   alias: z.string().optional(),
@@ -87,11 +88,11 @@ const schema = z.object({
 interface AliasFormProps {
   address: string;
   alias?: string;
-  mutate: () => void;
+  refetch: () => void;
   onSubmit: () => void;
 }
 
-function AliasForm({ address, alias, mutate, onSubmit }: AliasFormProps) {
+function AliasForm({ address, alias, refetch, onSubmit }: AliasFormProps) {
   const {
     handleSubmit,
     register,
@@ -103,7 +104,7 @@ function AliasForm({ address, alias, mutate, onSubmit }: AliasFormProps) {
 
   const submit = (data: FieldValues) => {
     invoke("settings_set_alias", { address, alias: data.alias });
-    mutate();
+    refetch();
     onSubmit();
   };
 
