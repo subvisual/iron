@@ -9,10 +9,12 @@ import {
   Typography,
 } from "@mui/material";
 import { invoke } from "@tauri-apps/api";
-import { createElement, useCallback, useEffect, useState } from "react";
+import { createElement, useEffect } from "react";
 import InfiniteScroll from "react-infinite-scroller";
 import { Abi, Address, formatEther, formatGwei } from "viem";
 import { createFileRoute } from "@tanstack/react-router";
+import { StateCreator, create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
 
 import { BlockNumber, SolidityCall } from "@ethui/react/components";
 import { Paginated, PaginatedTx, Pagination, Tx } from "@ethui/types";
@@ -33,37 +35,58 @@ export const Route = createFileRoute("/_home/home/transactions")({
   component: Txs,
 });
 
-export function Txs() {
-  const account = useWallets((s) => s.address);
-  const chainId = useNetworks((s) => s.current?.chain_id);
+interface Store {
+  address?: string;
+  chainId?: number;
+  pages: Paginated<PaginatedTx>[];
+  reset: (address: Address | undefined, chainId: number | undefined) => void;
+  loadMore: () => void;
+}
 
-  const [pages, setPages] = useState<Paginated<PaginatedTx>[]>([]);
+const store: StateCreator<Store> = (set, get) => ({
+  pages: [],
 
-  const loadMore = useCallback(() => {
+  reset(address: Address | undefined, chainId: number | undefined) {
+    const previous = get();
+    if (previous.address === address && previous.chainId === chainId) return;
+    set({ address, chainId, pages: [] });
+  },
+
+  loadMore() {
+    const { address, chainId, pages } = get();
+    if (!address) return;
+
     let pagination: Pagination = {};
-    const last = pages?.at(-1)?.pagination;
+    const last = pages.at(-1)?.pagination;
     if (!!last) {
       pagination = last;
       pagination.page = (pagination.page || 0) + 1;
     }
 
     invoke<Paginated<PaginatedTx>>("db_get_transactions", {
-      address: account,
+      address,
       chainId,
       pagination,
-    }).then((page) => setPages([...pages, page]));
-  }, [account, chainId, pages, setPages]);
+    }).then((page) => set({ pages: [...pages, page] }));
+  },
+});
 
+const useStore = create<Store>()(subscribeWithSelector(store));
+
+export function Txs() {
+  const account = useWallets((s) => s.address);
+  const chainId = useNetworks((s) => s.current?.chain_id);
+  const [pages, reset, loadMore] = useStore((s) => [
+    s.pages,
+    s.reset,
+    s.loadMore,
+  ]);
+
+  useEventListener("txs-updated", () => reset(account, chainId));
   useEffect(() => {
-    if (pages.length == 0) loadMore();
-  }, [pages, loadMore]);
-
-  const reload = () => {
-    setPages([]);
-  };
-
-  useEventListener("txs-updated", reload);
-  useEffect(reload, [account, chainId]);
+    if (!account || !chainId) return;
+    reset(account, chainId);
+  }, [account, chainId, reset]);
 
   if (!account || !chainId) return null;
 

@@ -8,7 +8,7 @@ pub struct Pagination {
 }
 
 pub fn default_page_size() -> u32 {
-    20
+    10
 }
 
 impl Pagination {
