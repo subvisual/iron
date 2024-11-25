@@ -12,6 +12,7 @@ use crate::{
 };
 
 #[tauri::command]
+#[instrument(skip(db))]
 pub async fn db_get_transactions(
     address: Address,
     chain_id: u32,
