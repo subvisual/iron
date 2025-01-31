@@ -60,43 +60,8 @@ async fn expand_trace(
         trace.trace.trace_address.len(),
     ) {
         // contract deploys
-        (
-            Action::Create(CreateAction {
-                from, value, gas, ..
-            }),
-            Some(TraceOutput::Create(CreateOutput {
-                address, gas_used, ..
-            })),
-            _,
-        ) => {
-            vec![
-                Tx {
-                    hash: trace.transaction_hash.unwrap(),
-                    trace_address: Some(trace.trace.trace_address.clone()),
-                    position: trace.transaction_position.map(|p| p as usize),
-                    from,
-                    to: None,
-                    value: Some(value),
-                    data: Some(Bytes::default()),
-                    status: if receipt.status() { 1 } else { 0 },
-                    block_number,
-                    deployed_contract: Some(address),
-                    gas_limit: Some(gas),
-                    gas_used: Some(gas_used),
-                    max_fee_per_gas: tx.inner.as_eip1559().map(|t| t.tx().max_fee_per_gas),
-                    max_priority_fee_per_gas: tx.inner.as_eip1559().map(|t| t.tx().max_fee_per_gas),
-                    r#type: Some(<TxType as Into<u8>>::into(tx.inner.tx_type()) as u64),
-                    nonce: Some(tx.inner.nonce()),
-                    incomplete: false,
-                }
-                .into(),
-                ContractDeployed {
-                    address,
-                    code: provider.get_code_at(address).await.ok(),
-                    block_number,
-                }
-                .into(),
-            ]
+        (Action::Create(create_action), Some(TraceOutput::Create(create_output)), _) => {
+            expand_contract_deployed(provider, address, create_action, create_output).await
         }
 
         // TODO: match call input against ERC20 abi
@@ -173,4 +138,47 @@ fn expand_log(log: RpcLog) -> Option<Event> {
     };
 
     None
+}
+
+async fn expand_contract_deployed(
+    provider: &RootProvider<Http<Client>>,
+    address: Address,
+    CreateAction {
+        from, value, gas, ..
+    }: CreateAction,
+    CreateOutput {
+        address, gas_used, ..
+    }: CreateOutput,
+) -> Option<ContractDeployed> {
+    let code = provider.get_code(address).await.ok();
+    vec![
+        // record a TX event
+        Tx {
+            hash: trace.transaction_hash.unwrap(),
+            trace_address: Some(trace.trace.trace_address.clone()),
+            position: trace.transaction_position.map(|p| p as usize),
+            from,
+            to: None,
+            value: Some(value),
+            data: Some(Bytes::default()),
+            status: if receipt.status() { 1 } else { 0 },
+            block_number,
+            deployed_contract: Some(address),
+            gas_limit: Some(gas),
+            gas_used: Some(gas_used),
+            max_fee_per_gas: tx.inner.as_eip1559().map(|t| t.tx().max_fee_per_gas),
+            max_priority_fee_per_gas: tx.inner.as_eip1559().map(|t| t.tx().max_fee_per_gas),
+            r#type: Some(<TxType as Into<u8>>::into(tx.inner.tx_type()) as u64),
+            nonce: Some(tx.inner.nonce()),
+            incomplete: false,
+        }
+        .into(),
+        // record a contract deployed event
+        ContractDeployed {
+            address,
+            code,
+            block_number,
+        }
+        .into(),
+    ]
 }
